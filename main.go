@@ -11,6 +11,10 @@ import (
 	"github.com/martinlindhe/notify"
 )
 
+var client = &http.Client{
+	Timeout: time.Second * 5,
+}
+
 func main() {
 	for {
 		showMenu()
@@ -59,15 +63,20 @@ func siteMonitor() string {
 }
 
 func testSite(site string) {
-	response, err := http.Get(site)
-	dt := time.Now()
+	req, _ := http.NewRequest("GET", site, nil)
 
+	response, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Site is not found", err)
+		if os.IsTimeout(err) {
+			fmt.Println("Timeout connecting to", site)
+			return
+		}
+		fmt.Printf("Error connecting to '%s': %s", site, err)
+		return
 	}
 
 	if response.StatusCode == http.StatusOK {
-		fmt.Println(dt.Format("01-02-2006 15:04:05 Monday"))
+		fmt.Println(time.Now().Format("01-02-2006 15:04:05 Monday"))
 		print(color.Green + "Website: " + site + " - Online \n\n " + color.Reset)
 
 	} else {
